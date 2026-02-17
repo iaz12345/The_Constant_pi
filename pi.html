@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Universe - True Sequence</title>
+    <style>
+        body {
+            background-color: #02050a;
+            color: #ffffff;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #viewport {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 2000px;
+        }
+
+        #universe {
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.2s ease-out;
+        }
+
+        .digit {
+            position: absolute;
+            font-size: 16px;
+            font-weight: bold;
+            opacity: 0;
+            transform-origin: center;
+            animation: spawn 0.5s ease-out forwards;
+        }
+
+        @keyframes spawn {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(3); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* Angka 3 dan pemimpin orbit lainnya */
+        .orbit-leader {
+            color: #ff2d55;
+            text-shadow: 0 0 12px #ff2d55;
+            font-size: 20px;
+            z-index: 10;
+        }
+
+        .orbit-follower {
+            color: #00f2ff;
+            text-shadow: 0 0 5px rgba(0, 242, 255, 0.3);
+        }
+
+        /* Lambang Pi di pusat */
+        .center-mark {
+            position: absolute;
+            font-size: 4rem;
+            color: #fff;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            font-family: serif;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="viewport">
+        <div id="universe">
+            <div class="center-mark">π</div>
+        </div>
+    </div>
+
+    <script>
+        const universe = document.getElementById('universe');
+        let currentRing = 1;
+        let scale = 1;
+        
+        const ringSpacing = 40;   
+        const charSpacing = 20;   
+        const typeSpeed = 50;     
+
+        /**
+         * Algoritma Spigot Unbounded (Menghitung Pi dari awal)
+         */
+        function* piDigitGenerator() {
+            let q = 1n, r = 0n, t = 1n, k = 1n, n = 3n, l = 3n;
+            while (true) {
+                if (4n * q + r - t < n * t) {
+                    yield Number(n);
+                    let nr = 10n * (r - n * t);
+                    n = ((10n * (3n * q + r)) / t) - 10n * n;
+                    q *= 10n;
+                    r = nr;
+                } else {
+                    let nr = (2n * q + r) * l;
+                    let nn = (q * (7n * k + 2n) + r * l) / (t * l);
+                    q *= k;
+                    t *= l;
+                    l += 2n;
+                    k += 1n;
+                    n = nn;
+                    r = nr;
+                }
+            }
+        }
+
+        const piGen = piDigitGenerator();
+
+        // Fitur Zoom
+        window.addEventListener('wheel', (e) => {
+            scale *= (e.deltaY > 0) ? 0.85 : 1.15;
+            scale = Math.min(Math.max(scale, 0.05), 20);
+            universe.style.transform = scale(${scale});
+        });
+
+        async function startOrbit() {
+            let isFirstDigit = true;
+
+            while (true) {
+                let radius = currentRing * ringSpacing;
+                let digitsInRing = Math.floor((2 * Math.PI * radius) / charSpacing);
+
+                for (let i = 0; i < digitsInRing; i++) {
+                    let { value: digit } = piGen.next();
+                    let displayText = digit.toString();
+
+                    // Logika khusus untuk angka pertama (Angka 3)
+                    if (isFirstDigit) {
+                        displayText = "3."; // Menambahkan koma setelah angka 3
+                        isFirstDigit = false;
+                    }
+                    
+                    const angle = (i / digitsInRing) * (2 * Math.PI);
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+
+                    const span = document.createElement('span');
+                    span.innerText = displayText;
+                    
+                    // Jika i == 0, maka dia pemimpin orbit (warna merah)
+                    span.className = (i === 0) ? 'digit orbit-leader' : 'digit orbit-follower';
+                    
+                    span.style.left = ${x}px;
+                    span.style.top = ${y}px;
+                    span.style.transform = translate(-50%, -50%) rotate(${angle + Math.PI/2}rad);
+
+                    universe.appendChild(span);
+
+                    // Bersihkan memori
+                    if (universe.children.length > 3000) {
+                        universe.removeChild(universe.children[1]);
+                    }
+
+                    await new Promise(r => setTimeout(r, typeSpeed));
+                }
+                currentRing++;
+                await new Promise(r => setTimeout(r, 100));
+            }
+        }
+
+        startOrbit();
+    </script>
+</body>
+</html>

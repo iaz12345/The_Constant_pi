@@ -39,6 +39,7 @@
             opacity: 0;
             transform-origin: center;
             animation: spawn 0.5s ease-out forwards;
+            white-space: nowrap;
         }
 
         @keyframes spawn {
@@ -84,12 +85,12 @@
         let currentRing = 1;
         let scale = 1;
         
-        const ringSpacing = 40;   
-        const charSpacing = 20;   
+        const ringSpacing = 45;   
+        const charSpacing = 18;   
         const typeSpeed = 50;     
 
         /**
-         * Algoritma Spigot Unbounded (Menghitung Pi dari awal)
+         * Algoritma Spigot Unbounded (Menghitung Pi dari awal secara presisi)
          */
         function* piDigitGenerator() {
             let q = 1n, r = 0n, t = 1n, k = 1n, n = 3n, l = 3n;
@@ -115,11 +116,11 @@
 
         const piGen = piDigitGenerator();
 
-        // Fitur Zoom
+        // Perbaikan Fitur Zoom: Menggunakan Template Literals (Backticks)
         window.addEventListener('wheel', (e) => {
             scale *= (e.deltaY > 0) ? 0.85 : 1.15;
             scale = Math.min(Math.max(scale, 0.05), 20);
-            universe.style.transform = scale(${scale});
+            universe.style.transform = `scale(${scale})`;
         });
 
         async function startOrbit() {
@@ -127,15 +128,15 @@
 
             while (true) {
                 let radius = currentRing * ringSpacing;
+                // Keliling lingkaran / spasi karakter = jumlah digit per orbit
                 let digitsInRing = Math.floor((2 * Math.PI * radius) / charSpacing);
 
                 for (let i = 0; i < digitsInRing; i++) {
                     let { value: digit } = piGen.next();
                     let displayText = digit.toString();
 
-                    // Logika khusus untuk angka pertama (Angka 3)
                     if (isFirstDigit) {
-                        displayText = "3."; // Menambahkan koma setelah angka 3
+                        displayText = "3."; 
                         isFirstDigit = false;
                     }
                     
@@ -146,24 +147,29 @@
                     const span = document.createElement('span');
                     span.innerText = displayText;
                     
-                    // Jika i == 0, maka dia pemimpin orbit (warna merah)
+                    // Style dinamis
                     span.className = (i === 0) ? 'digit orbit-leader' : 'digit orbit-follower';
                     
-                    span.style.left = ${x}px;
-                    span.style.top = ${y}px;
-                    span.style.transform = translate(-50%, -50%) rotate(${angle + Math.PI/2}rad);
+                    // Perbaikan: Memberikan tanda petik miring (backticks) pada nilai style
+                    span.style.left = `${x}px`;
+                    span.style.top = `${y}px`;
+                    span.style.transform = `translate(-50%, -50%) rotate(${angle + Math.PI/2}rad)`;
 
                     universe.appendChild(span);
 
-                    // Bersihkan memori
-                    if (universe.children.length > 3000) {
-                        universe.removeChild(universe.children[1]);
+                    // Optimasi memori: Menghapus elemen lama agar tidak lag
+                    if (universe.children.length > 2000) {
+                        // Jangan hapus index 0 karena itu adalah simbol π pusat
+                        if (universe.children[1]) {
+                            universe.removeChild(universe.children[1]);
+                        }
                     }
 
                     await new Promise(r => setTimeout(r, typeSpeed));
                 }
                 currentRing++;
-                await new Promise(r => setTimeout(r, 100));
+                // Jeda antar orbit agar efek transisinya terlihat bagus
+                await new Promise(r => setTimeout(r, 200));
             }
         }
 
